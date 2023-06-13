@@ -376,7 +376,7 @@ if __name__ == "__main__":
     t1, t2, t3, angle_in_rads, v1, v2, v3 = result.x
     best_params = result.x
     # best_params = [-1.78, -2.00, -2.38, 0.15, 0.62, 0.51, 0.62]
-    t1, t2, t3, angle_in_rads, v1, v2, v3 = best_params
+    # t1, t2, t3, angle_in_rads, v1, v2, v3 = best_params
     print('Best parameters:')
     print(f'  >> Translation: ({t1:0.02f}, {t2:0.02f}, {t3:0.02f}).')
     print(f'  >> Rotation: {angle_in_rads:0.02f} rads around axis ({v1:0.02f}, {v2:0.02f}, {v3:0.02f}).')
@@ -447,26 +447,26 @@ if __name__ == "__main__":
     img_ref = img_phantom[mask_centroid_idx, :, :]
     fig, axs = plt.subplots(1, 3)
     axs[0].imshow(img_orig, cmap='bone')
-    axs[0].set_title('Image input')
+    axs[0].set_title('Coregistered image input')
     axs[1].imshow(img_orig - img_ref, cmap='bone')
     axs[1].set_title('Difference')
     axs[2].imshow(img_ref, cmap='bone')
     axs[2].set_title('Image reference')
-    fig.suptitle("Image differences: Image input - Image reference")
+    fig.suptitle("Image differences: Coregistered image input - Image reference")
     plt.show()
 
     # Compute metrics
     mae = mean_absolute_error(img_ref, img_orig)
     print('MAE:')
-    print(f'  >> Result: {mae:.02f} HU')
+    print(f'  >> Result: {mae:.02f}')
 
     mse = mean_squared_error(img_ref, img_orig)
     print('MSE:')
-    print(f'  >> Result: {mse:.02f} HU^2')
+    print(f'  >> Result: {mse:.02f}')
 
     mutual_inf = mutual_information(img_ref, img_orig)
     print('Mutual Information:')
-    print(f'  >> Result: {mutual_inf:02f} bits')
+    print(f'  >> Result: {mutual_inf:02f}')
     
     # Second part: Thalamus region mapping
     fused_phantom = visualize_axial_slice(img_phantom, thalamus_mask, mask_centroid)
