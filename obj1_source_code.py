@@ -42,9 +42,6 @@ def rotate_on_axial_plane(img_dcm: np.ndarray, angle_in_degrees: float) -> np.nd
     return scipy.ndimage.rotate(img_dcm, angle_in_degrees, axes=(1, 2), reshape=False)
 
 def find_centroid(mask: np.ndarray) -> np.ndarray:
-    # Your code here:
-    #   Consider using `np.where` to find the indices of the voxels in the mask
-    #   ...
     idcs = np.where(mask == 1)
     centroid = np.stack([
         np.mean(idcs[0]),
@@ -62,23 +59,42 @@ def normalize_array(arr):
 
 def visualize_axial_slice(
         img: np.ndarray,
-        mask: np.ndarray,
-        mask_centroid: np.ndarray,
+        mask1: np.ndarray,
+        mask2: np.ndarray,
+        mask3: np.ndarray,
+        mask4: np.ndarray,
         ):
     """ Visualize the axial slice (firs dim.) of a single region with alpha fusion. """
     img_slice = img[:, :, :]
-    mask_slice = mask[:, :, :] 
+    mask_slice_1 = mask1[:, :, :] 
+    mask_slice_2 = mask2[:, :, :] 
+    mask_slice_3 = mask3[:, :, :] 
+    mask_slice_4 = mask4[:, :, :] 
     fused_slices = []
 
     for i in range(img.shape[0]):
         cmap = matplotlib.colormaps['bone']
         norm = matplotlib.colors.Normalize(vmin=np.amin(img_slice[i]), vmax=np.amax(img_slice[i]))
-        fused_slice = \
-            0.8*cmap(norm(img_slice[i]))[..., :3] + \
-            0.2*np.stack([mask_slice[i], np.zeros_like(mask_slice[i]), np.zeros_like(mask_slice[i])], axis=-1)
-        fused_slices.append(fused_slice[...,0])
+        fused_slice = 0.8 * cmap(norm(img_slice[i]))[...,:3] \
+        + 0.2 * np.stack([np.zeros_like(mask_slice_1[i]), mask_slice_1[i], np.zeros_like(mask_slice_1[i])], axis=-1) \
+        + 0.2 * np.stack([mask_slice_2[i], np.zeros_like(mask_slice_2[i]), np.zeros_like(mask_slice_2[i])], axis=-1) \
+        + 0.2 * np.stack([np.zeros_like(mask_slice_3[i]), np.zeros_like(mask_slice_3[i]), mask_slice_3[i]], axis=-1) \
+        + 0.2 * np.stack([mask_slice_4[i], mask_slice_4[i], np.zeros_like(mask_slice_4[i])], axis=-1)
+        fused_slices.append(fused_slice)
     fused_slices = np.array(fused_slices)
     return fused_slices
+
+def find_sequence_slices(seg_dataset):
+    total_seg_len = seg_dataset['NumberOfFrames'].value
+    seg_count = len(seg_dataset['SegmentSequence'].value)
+    len_per_seg = total_seg_len//seg_count
+    segmentation_array = seg_dataset.pixel_array
+    segmentation_array = np.flip(segmentation_array, axis=1)
+    dict_slices = dict()
+    for i in range(seg_count):
+        seg_name = segmentation_dataset['SegmentSequence'][i]['SegmentDescription'].value
+        dict_slices[seg_name] = segmentation_array[i*len_per_seg:i*len_per_seg+len_per_seg]
+    return dict_slices
 
 if __name__ == "__main__":
     pixel_data = []
@@ -86,7 +102,9 @@ if __name__ == "__main__":
     
     segmentation_path = "./data/99-segmentation.dcm"
     segmentation_dataset = pydicom.dcmread(segmentation_path)
-    segmentation_array = segmentation_dataset.pixel_array
+    
+    # Find sequence
+    sequence_slice = find_sequence_slices(segmentation_dataset)
 
     directory = "./data/99-3.000000-C-A-P-42120-aq2/"
     directories = sorted(os.listdir(directory))
@@ -100,9 +118,7 @@ if __name__ == "__main__":
     img_dcm = np.array(pixel_data)
     img_dcm = normalize_array(img_dcm)
 
-    segmentation_array = np.flip(segmentation_array, axis=1)
-    mask_centroid = find_centroid(segmentation_array[37:73]) # Tumor sequence
-    segmented_img_dcm = visualize_axial_slice(img_dcm, segmentation_array[37:73], mask_centroid)
+    segmented_img_dcm = visualize_axial_slice(img_dcm, sequence_slice["Liver"], sequence_slice["Tumor"], sequence_slice["vessels"], sequence_slice["aorta"])
     
     # Show median planes
     fig, ax = plt.subplots(1, 2)
